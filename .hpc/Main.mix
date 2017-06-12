@@ -1,0 +1,1 @@
+Mix "test/Spec.hs" 2017-06-12 07:41:16.216238129 UTC 1310427243 8 [(8:24-8:43,ExpBox False),(8:55-8:62,ExpBox False),(8:64-8:78,ExpBox False),(8:45-8:79,ExpBox False),(8:8-8:79,ExpBox False),(8:1-8:79,TopLevelBox ["spec"]),(6:14-6:17,ExpBox False),(6:8-6:17,ExpBox False),(6:1-6:17,TopLevelBox ["main"])]
