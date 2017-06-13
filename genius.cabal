@@ -20,9 +20,12 @@ library
   default-extensions:  OverloadedStrings
                      , ExistentialQuantification
   exposed-modules:
-                       Genius
+                       Genius.Repl
+                     , Genius.Core
                      , Genius.Types
                      , Genius.Parsers
+                     , Genius.Primitives
+                     , Genius.IOPrimitives
   build-depends:       base >= 4.7 && < 5
                      , parsec
                      , mtl
