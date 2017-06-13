@@ -3,13 +3,13 @@
 module Genius where
 
 import           Genius.Types
+import Genius.Parsers
 
 import           System.IO
 import           Control.Monad
 import           Control.Monad.Error
 import           Data.IORef
 import           System.Environment
-import           Text.ParserCombinators.Parsec hiding (spaces)
 
 -- REPL
 
@@ -36,7 +36,7 @@ evalAndPrint :: Env -> String -> IO ()
 evalAndPrint env expr =  evalString env expr >>= putStrLn
 
 evalString :: Env -> String -> IO String
-evalString env expr = runIOThrows $ liftM show $ (liftThrows $ readExpr expr) >>= eval env
+evalString env expr = runIOThrows $ liftM show $ (liftThrows $ parseExprOrThrow expr) >>= eval env
 
 primitiveBindings :: IO Env
 primitiveBindings = nullEnv >>= (flip bindVars $ map (makeFunc IOFunc) ioPrimitives
@@ -52,13 +52,7 @@ until_ pred prompt action = do
 
 -- AXIOMS
 
-readExpr = readOrThrow parseExpr
-readExprList = readOrThrow (endBy parseExpr spaces)
 
-readOrThrow :: Parser a -> String -> ThrowsError a
-readOrThrow parser input = case parse parser "lisp" input of
-    Left err  -> throwError $ Parser err
-    Right val -> return val
 
 eval :: Env -> LispVal -> IOThrowsError LispVal
 eval env val@(String _) = return val
@@ -107,60 +101,6 @@ apply (Func params varargs body closure) args =
                 Nothing -> return env
 apply (IOFunc func) args = func args
 
--- PARSERS (LispVal)
-
-parseExpr :: Parser LispVal
-parseExpr = parseAtom
-         <|> parseString
-         <|> parseNumber
-         <|> parseQuoted
-         <|> do char '('
-                x <- try parseList <|> parseDottedList
-                char ')'
-                return x
-
-parseAtom :: Parser LispVal
-parseAtom = do
-              first <- letter <|> symbol
-              rest <- many (letter <|> digit <|> symbol)
-              let atom = first:rest
-              return $ case atom of
-                         "#t" -> Bool True
-                         "#f" -> Bool False
-                         _    -> Atom atom
-
-parseString :: Parser LispVal
-parseString = do
-                char '"'
-                x <- many (noneOf "\"")
-                char '"'
-                return $ String x
-
-parseNumber :: Parser LispVal
-parseNumber = liftM (Number . read) $ many1 digit
-
-parseList :: Parser LispVal
-parseList = liftM List $ sepBy parseExpr spaces
-
-parseDottedList :: Parser LispVal
-parseDottedList = do
-    head <- endBy parseExpr spaces
-    tail <- char '.' >> spaces >> parseExpr
-    return $ DottedList head tail
-
-parseQuoted :: Parser LispVal
-parseQuoted = do
-    char '\''
-    x <- parseExpr
-    return $ List [Atom "quote", x]
-
--- PARSERS (HELPERS)
-
-symbol :: Parser Char
-symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
-
-spaces :: Parser ()
-spaces = skipMany1 space
 
 -- PRIMITIVES (PURE)
 
@@ -279,7 +219,7 @@ ioPrimitives = [("apply", applyProc),
 
 readProc :: [LispVal] -> IOThrowsError LispVal
 readProc []          = readProc [Port stdin]
-readProc [Port port] = (liftIO $ hGetLine port) >>= liftThrows . readExpr
+readProc [Port port] = (liftIO $ hGetLine port) >>= liftThrows . parseExprOrThrow
 
 writeProc :: [LispVal] -> IOThrowsError LispVal
 writeProc [obj]            = writeProc [obj, Port stdout]
@@ -303,7 +243,7 @@ readAll :: [LispVal] -> IOThrowsError LispVal
 readAll [String filename] = liftM List $ load filename
 
 load :: String -> IOThrowsError [LispVal]
-load filename = (liftIO $ readFile filename) >>= liftThrows . readExprList
+load filename = (liftIO $ readFile filename) >>= liftThrows . parseExprListOrThrow
 
 -- PRIMITIVES (HELPERS)
 
