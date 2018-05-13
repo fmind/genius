@@ -6,7 +6,7 @@ author:                Médéric Hurier <fmind@users.noreply.github.com>
 maintainer:            Médéric Hurier <fmind@users.noreply.github.com>
 copyright:             (c) 2017 Médéric Hurier
 homepage:              https://github.com/fmind/genius
-license:               BSD3
+license:               AGPLv3
 license-file:          LICENSE
 extra-source-files:    README.md
 category:              Development
